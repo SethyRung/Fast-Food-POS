@@ -1,0 +1,9 @@
+<template>
+  <div>
+    <h1>Homepage</h1>
+  </div>
+</template>
+
+<script setup lang="ts">
+await navigateTo("/auth/login");
+</script>
