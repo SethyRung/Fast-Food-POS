@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) =>
   sequelize.define(
-    "users",
+    "Employees",
     {
       id: {
         type: DataTypes.INTEGER,
@@ -8,11 +8,7 @@ module.exports = (sequelize, DataTypes) =>
         allowNull: false,
         primaryKey: true,
       },
-      profile_picture: {
-        type: DataTypes.STRING,
-        allowNull: true,
-      },
-      username: {
+      name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
@@ -36,6 +32,10 @@ module.exports = (sequelize, DataTypes) =>
       roles: {
         type: DataTypes.JSON,
         allowNull: false,
+      },
+      profile_picture: {
+        type: DataTypes.STRING,
+        allowNull: true,
       },
       refreshToken: {
         type: DataTypes.JSON,

@@ -28,8 +28,8 @@ const auth = require("./routers/auth");
 app.use("/auth", auth);
 
 sequelize
-  // .sync({ force: true })
-  .sync()
+  .sync({ force: true })
+  // .sync()
   .then((result) => {
     app.listen(process.env.SERVER_PORT, () => {
       console.log(`Starting Test Server...`, new Date().toLocaleTimeString());

@@ -24,8 +24,13 @@ fs.readdirSync(__dirname)
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 
-// db.User.hasMany(db.Thread, {
-//   foreignKey: "uid",
-// });
+db.Categories.hasMany(db.Products);
+db.Products.belongsToMany(db.Orders, { through: "OrderProducts" });
+db.Products.belongsTo(db.Categories);
+db.Customers.belongsTo(db.Orders);
+db.Employees.hasMany(db.Orders);
+db.Orders.belongsTo(db.Customers);
+db.Orders.belongsTo(db.Employees);
+db.Orders.belongsToMany(db.Products, { through: "OrderProducts" });
 
 module.exports = db;
