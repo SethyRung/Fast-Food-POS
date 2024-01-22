@@ -1,23 +1,23 @@
-const { User } = require("../models");
+const { Employees } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
 module.exports = {
   async handleRegister(req, res) {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password)
+    const { name, email, password } = req.body;
+    if (!name || !email || !password)
       return res
         .status(400)
-        .json({ message: "Username, Email and Password are required." });
+        .json({ message: "Name, Email and Password are required." });
     try {
       //encrypt the password
       const hashedPwd = await bcrypt.hash(password, 10);
 
-      await User.create({
-        username: username,
+      await Employees.create({
+        name: name,
         email: email,
         password: hashedPwd,
-        roles: { User: 2001 },
+        roles: { Employee: 2001 },
         refreshToken: [],
       });
       res.send({
@@ -45,7 +45,7 @@ module.exports = {
       return res
         .status(400)
         .json({ message: "Email and Password are required." });
-    const foundUser = await User.findOne({ where: { email: email } });
+    const foundUser = await Employees.findOne({ where: { email: email } });
     if (!foundUser)
       return res.status(401).json({
         status: "error",
@@ -81,18 +81,18 @@ module.exports = {
       if (cookies?.jwt) {
         /* 
           Scenario added here: 
-              1) User logs in but never uses RT and does not logout 
+              1) employee logs in but never uses RT and does not logout 
               2) RT is stolen
-              3) If 1 & 2, reuse detection is needed to clear all RTs when user logs in
+              3) If 1 & 2, reuse detection is needed to clear all RTs when employee logs in
           */
         const refreshToken = cookies.jwt;
-        const foundToken = await User.findOne({
+        const foundToken = await employee.findOne({
           where: { refreshToken: refreshToken },
         });
 
         // Detected refresh token reuse!
         if (!foundToken) {
-          console.log("attempted refresh token reuse at login!");
+          // console.log("attempted refresh token reuse at login!");
           // clear out ALL previous refresh tokens
           newRefreshTokenArray = [];
         }
@@ -104,9 +104,9 @@ module.exports = {
         });
       }
 
-      // Saving refreshToken with current user
+      // Saving refreshToken with current employee
 
-      const result = await User.update(
+      const result = await Employees.update(
         { refreshToken: [...newRefreshTokenArray, newRefreshToken] },
         {
           where: { email: email },
@@ -121,7 +121,7 @@ module.exports = {
         maxAge: 24 * 60 * 60 * 1000,
       });
 
-      // Send authorization roles and access token to user
+      // Send authorization roles and access token to employee
       res.status(200).json({
         status: "success",
         message: "Success! You are now logged in.",
@@ -142,8 +142,8 @@ module.exports = {
     const refreshToken = cookies.jwt;
     res.clearCookie("jwt", {
       httpOnly: true,
-      // sameSite: "None",
-      // secure: true,
+      sameSite: "None",
+      secure: true,
     });
 
     let email;
@@ -159,15 +159,15 @@ module.exports = {
 
     if (email === undefined) return;
 
-    const user = await User.findOne({
+    const employee = await Employees.findOne({
       where: {
         email: email,
       },
     });
 
     let foundUser = null;
-    user?.refreshToken.forEach((r) => {
-      if (r === refreshToken) foundUser = user;
+    employee?.refreshToken.forEach((r) => {
+      if (r === refreshToken) foundUser = employee;
     });
 
     //Detected refresh token reuse!
@@ -178,7 +178,7 @@ module.exports = {
         async (err, decoded) => {
           if (err) return res.sendStatus(403); //Forbidden
           // console.log('attempted refresh token reuse!')
-          const result = await User.update(
+          const result = await Employees.update(
             { refreshToken: [] },
             { where: { email: decoded.email } }
           );
@@ -197,7 +197,7 @@ module.exports = {
       process.env.REFRESH_TOKEN_SECRET,
       async (err, decoded) => {
         if (err) {
-          const result = await User.update(
+          const result = await Employees.update(
             { refreshToken: [...newRefreshTokenArray] },
             {
               where: {
@@ -227,8 +227,8 @@ module.exports = {
           { expiresIn: "1d" }
         );
 
-        // Saving refreshToken with current user
-        const result = await User.update(
+        // Saving refreshToken with current employee
+        const result = await employee.update(
           { refreshToken: [...newRefreshTokenArray, newRefreshToken] },
           {
             where: {
@@ -240,8 +240,8 @@ module.exports = {
         //Creates Secure Cookie with refresh token
         res.cookie("jwt", newRefreshToken, {
           httpOnly: true,
-          // secure: true,
-          // sameSite: "None",
+          secure: true,
+          sameSite: "None",
           maxAge: 24 * 60 * 60 * 1000,
         });
 
@@ -272,7 +272,7 @@ module.exports = {
         email = decoded.email;
       }
     );
-    const user = await User.findOne({
+    const employee = await Employees.findOne({
       where: {
         email: email,
       },
@@ -280,14 +280,14 @@ module.exports = {
 
     let foundUser = null;
 
-    user?.refreshToken.forEach((r) => {
-      if (r === refreshToken) foundUser = user;
+    employee?.refreshToken.forEach((r) => {
+      if (r === refreshToken) foundUser = employee;
     });
 
     // Is refreshToken in db?
     if (foundUser) {
       // Delete refreshToken in db
-      const result = await User.update(
+      const result = await Employees.update(
         {
           refreshToken: foundUser.refreshToken.filter(
             (rt) => rt !== refreshToken

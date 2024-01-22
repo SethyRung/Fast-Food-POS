@@ -4,7 +4,7 @@ import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
 
 const schema = z
   .object({
-    username: z.string(),
+    name: z.string(),
     email: z.string().email("Invalid email"),
     password: z
       .string()
@@ -35,7 +35,7 @@ const schema = z
   });
 
 const state = reactive({
-  username: undefined,
+  name: undefined,
   email: undefined,
   password: undefined,
   confirmPassword: undefined,
@@ -47,7 +47,7 @@ async function handleRegister(event: FormSubmitEvent<z.output<typeof schema>>) {
   const { data } = await useFetch(config.public.apiURL + "auth/register", {
     method: "post",
     body: {
-      username: event.data.username,
+      name: event.data.name,
       email: event.data.email,
       password: event.data.password,
     },
@@ -64,7 +64,7 @@ async function handleRegister(event: FormSubmitEvent<z.output<typeof schema>>) {
     timeout: 60000,
   });
   if (res.status === "success") {
-    state.username = undefined;
+    state.name = undefined;
     state.email = undefined;
     state.password = undefined;
     state.confirmPassword = undefined;
@@ -85,11 +85,11 @@ async function handleRegister(event: FormSubmitEvent<z.output<typeof schema>>) {
       </template>
 
       <UForm :schema="schema" :state="state" @submit="handleRegister">
-        <UFormGroup label="Username" name="username" required class="mb-5">
+        <UFormGroup label="Name" name="name" required class="mb-5">
           <UInput
             icon="i-heroicons-envelope"
             placeholder="user123"
-            v-model="state.username"
+            v-model="state.name"
           />
         </UFormGroup>
         <UFormGroup label="Email" name="email" required class="mb-5">
