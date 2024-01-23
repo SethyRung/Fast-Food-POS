@@ -9,7 +9,13 @@ module.exports = {
     "./error.vue",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        rubik: ["Rubik"],
+        kantumruy: ["Kantumruy+Pro"],
+        moul: ["Moul"],
+      },
+    },
   },
   plugins: [],
 };
