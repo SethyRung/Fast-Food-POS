@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   runtimeConfig: {
     public: {
       apiURL: "http://localhost:8080/",
@@ -19,4 +19,7 @@ export default defineNuxtConfig({
     preference: "light",
   },
   css: ["~/assets/css/main.css"],
+  routeRules: {
+    "/auth/**": { ssr: false },
+  },
 });

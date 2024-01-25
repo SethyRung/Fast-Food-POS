@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts">
-await navigateTo("/auth/login");
+await navigateTo("/auth");
 </script>

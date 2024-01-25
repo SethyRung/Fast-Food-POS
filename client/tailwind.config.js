@@ -15,6 +15,10 @@ module.exports = {
         kantumruy: ["Kantumruy+Pro"],
         moul: ["Moul"],
       },
+      colors: {
+        skylineBlue: "#1A72DD",
+        navy: "#2A3256",
+      },
     },
   },
   plugins: [],
