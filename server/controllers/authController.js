@@ -86,7 +86,7 @@ module.exports = {
               3) If 1 & 2, reuse detection is needed to clear all RTs when employee logs in
           */
         const refreshToken = cookies.jwt;
-        const foundToken = await employee.findOne({
+        const foundToken = await Employees.findOne({
           where: { refreshToken: refreshToken },
         });
 
