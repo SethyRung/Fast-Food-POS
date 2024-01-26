@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { number, string, z } from "zod";
+import { string, z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
 
 const schema = z.object({
@@ -8,8 +8,8 @@ const schema = z.object({
 });
 
 const state = reactive({
-  email: "rungsethyhk@gmail.com",
-  password: "Rs123451@",
+  email: undefined,
+  password: undefined,
 });
 
 const config = useRuntimeConfig();
@@ -34,61 +34,110 @@ async function handleLogin(event: FormSubmitEvent<z.output<typeof schema>>) {
       timeout: 5000,
     });
   } else {
-    // state.email = "";
-    // state.password = "";
-    //do something
-    // this.userLoggedIn = true;
-    // this.uid = res.data.uid;
-    // this.roles = res.data.roles;
-    // localStorage.setItem("token", res.data.accessToken);
-    // axios.defaults.headers.common[
-    //   "Authorization"
-    // ] = `Bearer ${res.data.accessToken}`;
-    // this.$router.push({ name: "home", replace: true });
+    state.email = undefined;
+    state.password = undefined;
+    const userStore = useUserStore();
+    userStore.isAuthenticated = true;
+    userStore.uid = (data as any).value.uid;
+    userStore.roles = (data as any).value.roles;
+
+    localStorage.setItem("token", (data as any).value.accessToken);
+    await navigateTo("/", {
+      replace: true,
+    });
   }
 }
+const height = ref(window.innerHeight + "px");
+window.addEventListener("resize", (e) => {
+  height.value = window.innerHeight + "px";
+});
 </script>
 
 <template>
   <div
     class="w-full flex justify-center items-center"
-    style="min-height: calc(100vh - 100px)"
+    :style="{ minHeight: height }"
   >
-    <UCard class="w-80 h-fit sm:w-96">
+    <UCard
+      class="w-full h-fit sm:w-96 px-2"
+      :ui="{ ring: 'ring-0', shadow: 'shadow-none', divide: 'divide-y-0' }"
+    >
       <template #header>
-        <h2 class="text-center text-3xl text-green-500 font-bold">
-          Welcome back
+        <h2
+          class="text-center text-2xl text-skylineBlue-500 font-rubik font-bold"
+        >
+          Log in
         </h2>
       </template>
 
-      <UForm :schema="schema" :state="state" @submit="handleLogin">
-        <UFormGroup label="Email" name="email" required class="mb-5">
+      <UForm
+        :schema="schema"
+        :state="state"
+        @submit="handleLogin"
+        class="font-rubik"
+      >
+        <UFormGroup
+          label="Email"
+          name="email"
+          required
+          class="mb-5"
+          :ui="{
+            label: {
+              base: 'text-base',
+            },
+          }"
+        >
           <UInput
             icon="i-heroicons-envelope"
             placeholder="example@email.com"
             v-model="state.email"
+            :ui="{
+              size: {
+                sm: 'h-14',
+              },
+              base: 'text-sm',
+              rounded: 'rounded-2xl',
+            }"
           />
         </UFormGroup>
-        <UFormGroup label="Password" name="password" required class="mb-8">
+        <UFormGroup
+          label="Password"
+          name="password"
+          required
+          class="mb-8"
+          :ui="{
+            label: {
+              base: 'text-base',
+            },
+          }"
+        >
           <UInput
             icon="i-heroicons-lock-closed"
-            placeholder="p@ssw0rd"
+            placeholder="p@ssW0rd"
             type="password"
             v-model="state.password"
+            :ui="{
+              size: {
+                sm: 'h-14',
+              },
+              base: 'text-sm',
+              rounded: 'rounded-2xl',
+            }"
           />
         </UFormGroup>
 
-        <UButton label="Log In" type="submit" block size="xl" />
-        <p class="text-center mt-4">
-          Don't have a account?
-          <ULink
-            to="/auth/register"
-            active-class="text-primary"
-            inactive-class="text-primary"
-          >
-            Register
-          </ULink>
-        </p>
+        <UButton
+          label="Log In"
+          type="submit"
+          block
+          :ui="{
+            size: {
+              sm: 'h-14',
+            },
+            base: 'text-base',
+            rounded: 'rounded-2xl',
+          }"
+        />
       </UForm>
     </UCard>
     <UNotifications />

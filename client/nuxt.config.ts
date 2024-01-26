@@ -8,7 +8,12 @@ export default defineNuxtConfig({
   },
   modules: [
     "@nuxt/ui",
-    "@pinia/nuxt",
+    [
+      "@pinia/nuxt",
+      {
+        autoImports: ["defineStore"],
+      },
+    ],
     "@nuxtjs/tailwindcss",
     "@nuxtjs/color-mode",
   ],

@@ -1,9 +1,14 @@
 <template>
   <div>
-    <h1>Homepage</h1>
+    <h1>Welcome Back</h1>
   </div>
 </template>
 
 <script setup lang="ts">
-await navigateTo("/auth");
+const userStore = useUserStore();
+if (!userStore.isAuthenticated) {
+  await navigateTo("/auth", {
+    replace: true,
+  });
+}
 </script>

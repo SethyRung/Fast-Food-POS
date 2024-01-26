@@ -102,7 +102,7 @@ async function handleRegister(event: FormSubmitEvent<z.output<typeof schema>>) {
         <UFormGroup label="Password" name="password" required class="mb-8">
           <UInput
             icon="i-heroicons-lock-closed"
-            placeholder="p@ssw0rd"
+            placeholder="p@ssW0rd"
             type="password"
             v-model="state.password"
           />
@@ -116,7 +116,7 @@ async function handleRegister(event: FormSubmitEvent<z.output<typeof schema>>) {
           <UInput
             type="password"
             icon="i-heroicons-lock-closed"
-            placeholder="p@ssw0rd"
+            placeholder="p@ssW0rd"
             v-model="state.confirmPassword"
           />
         </UFormGroup>
