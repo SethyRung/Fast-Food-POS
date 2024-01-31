@@ -42,7 +42,7 @@ async function handleLogin(event: FormSubmitEvent<z.output<typeof schema>>) {
     userStore.roles = (data as any).value.roles;
 
     localStorage.setItem("token", (data as any).value.accessToken);
-    await navigateTo("/", {
+    navigateTo("/", {
       replace: true,
     });
   }

@@ -1,6 +1,7 @@
 const { Employees } = require("../models");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 
 module.exports = {
   async handleRegister(req, res) {
@@ -87,7 +88,11 @@ module.exports = {
           */
         const refreshToken = cookies.jwt;
         const foundToken = await Employees.findOne({
-          where: { refreshToken: refreshToken },
+          where: {
+            refreshToken: {
+              [Op.contains]: Array(refreshToken),
+            },
+          },
         });
 
         // Detected refresh token reuse!
@@ -106,7 +111,7 @@ module.exports = {
 
       // Saving refreshToken with current employee
 
-      const result = await Employees.update(
+      await Employees.update(
         { refreshToken: [...newRefreshTokenArray, newRefreshToken] },
         {
           where: { email: email },
@@ -130,7 +135,7 @@ module.exports = {
         accessToken: accessToken,
       });
     } else {
-      res.status(401).json({
+      return res.status(401).json({
         status: "error",
         message: "The email or password you entered is incorrect.",
       });
@@ -151,23 +156,44 @@ module.exports = {
       refreshToken,
       process.env.REFRESH_TOKEN_SECRET,
       async (err, decoded) => {
-        if (err)
+        if (err) {
+          //clear expired refresh token from database
+          const emp = await Employees.findOne({
+            where: {
+              refreshToken: {
+                [Op.contains]: [refreshToken],
+              },
+            },
+          });
+
+          await Employees.update(
+            {
+              refreshToken: emp.refreshToken.filter(
+                (rt) => rt !== refreshToken
+              ),
+            },
+            {
+              where: {
+                email: emp.email,
+              },
+            }
+          );
+
           return res.status(403).json({ message: "expired refresh token" });
+        }
         email = decoded.email;
       }
     );
 
     if (email === undefined) return;
 
-    const employee = await Employees.findOne({
+    const foundUser = await Employees.findOne({
       where: {
         email: email,
+        refreshToken: {
+          [Op.contains]: [refreshToken],
+        },
       },
-    });
-
-    let foundUser = null;
-    employee?.refreshToken.forEach((r) => {
-      if (r === refreshToken) foundUser = employee;
     });
 
     //Detected refresh token reuse!
@@ -178,7 +204,7 @@ module.exports = {
         async (err, decoded) => {
           if (err) return res.sendStatus(403); //Forbidden
           // console.log('attempted refresh token reuse!')
-          const result = await Employees.update(
+          await Employees.update(
             { refreshToken: [] },
             { where: { email: decoded.email } }
           );
@@ -197,7 +223,7 @@ module.exports = {
       process.env.REFRESH_TOKEN_SECRET,
       async (err, decoded) => {
         if (err) {
-          const result = await Employees.update(
+          await Employees.update(
             { refreshToken: [...newRefreshTokenArray] },
             {
               where: {
@@ -205,7 +231,6 @@ module.exports = {
               },
             }
           );
-          // console.log(result)
         }
         if (err || foundUser.email !== decoded.email)
           return res.status(403).json({ message: "expired refresh token" });
@@ -228,7 +253,7 @@ module.exports = {
         );
 
         // Saving refreshToken with current employee
-        const result = await employee.update(
+        await Employees.update(
           { refreshToken: [...newRefreshTokenArray, newRefreshToken] },
           {
             where: {
@@ -272,28 +297,30 @@ module.exports = {
         email = decoded.email;
       }
     );
-    const employee = await Employees.findOne({
+
+    const foundUser = await Employees.findOne({
       where: {
         email: email,
+        refreshToken: {
+          [Op.contains]: [refreshToken],
+        },
       },
-    });
-
-    let foundUser = null;
-
-    employee?.refreshToken.forEach((r) => {
-      if (r === refreshToken) foundUser = employee;
     });
 
     // Is refreshToken in db?
     if (foundUser) {
       // Delete refreshToken in db
-      const result = await Employees.update(
+      await Employees.update(
         {
           refreshToken: foundUser.refreshToken.filter(
             (rt) => rt !== refreshToken
           ),
         },
-        { where: { email: foundUser.email } }
+        {
+          where: {
+            email: foundUser.email,
+          },
+        }
       );
     }
 

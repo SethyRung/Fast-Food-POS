@@ -38,7 +38,7 @@ module.exports = (sequelize, DataTypes) =>
         allowNull: true,
       },
       refreshToken: {
-        type: DataTypes.JSON,
+        type: DataTypes.ARRAY(DataTypes.STRING),
         allowNull: false,
       },
     },
