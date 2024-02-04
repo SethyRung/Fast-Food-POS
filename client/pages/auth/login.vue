@@ -2,6 +2,10 @@
 import { string, z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
 
+definePageMeta({
+  layout: false,
+});
+
 const schema = z.object({
   email: z.string().email("Invalid email"),
   password: z.string(),
@@ -131,10 +135,7 @@ window.addEventListener("resize", (e) => {
           type="submit"
           block
           :ui="{
-            size: {
-              sm: 'h-14',
-            },
-            base: 'text-base',
+            base: 'text-base h-14',
             rounded: 'rounded-2xl',
           }"
         />

@@ -1,6 +1,8 @@
-<script lang="ts" setup>
+<script setup lang="ts">
 definePageMeta({
-  title: "Home",
+  title: "Cashier",
+  requiresAuth: true,
+  roles: [2001],
 });
 </script>
 

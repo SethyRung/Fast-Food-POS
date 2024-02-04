@@ -1,4 +1,7 @@
 <script setup lang="ts">
+definePageMeta({
+  layout: false,
+});
 const height = ref(window.innerHeight + "px");
 window.addEventListener("resize", (e) => {
   height.value = window.innerHeight + "px";
