@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   ssr: false,
   runtimeConfig: {
     public: {
@@ -18,6 +18,12 @@ export default defineNuxtConfig({
     "@nuxtjs/tailwindcss",
     "@nuxtjs/color-mode",
   ],
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {},
+    },
+  },
   imports: {
     dirs: ["~/stores"],
   },
@@ -25,7 +31,9 @@ export default defineNuxtConfig({
     preference: "light",
   },
   css: ["~/assets/css/main.css"],
-  routeRules: {
-    "/auth/**": { ssr: false },
-  },
+  components: [
+    {
+      path: "~/components",
+    },
+  ],
 });

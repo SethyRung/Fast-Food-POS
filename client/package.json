@@ -19,9 +19,9 @@
   },
   "dependencies": {
     "@nuxt/ui": "^2.12.3",
+    "@nuxtjs/color-mode": "^3.3.2",
     "@pinia/nuxt": "^0.5.1",
     "pinia": "^2.1.7",
-    "@nuxtjs/color-mode": "^3.3.2",
     "zod": "^3.22.4"
   }
 }
