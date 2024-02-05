@@ -33,10 +33,12 @@ module.exports = {
   },
   async readProduct(req, res) {
     try {
-      const products = Products.findAll({
+      const products = await Products.findAll({
+        attributes: ["id", "name", "price", "photo"],
         include: [
           {
             model: Categories,
+            attributes: ["id", "name"],
             required: true,
           },
         ],
@@ -62,9 +64,11 @@ module.exports = {
       const id = parseInt(req.params.id);
       if (isNaN(id)) throw new Error();
       const product = await Products.findByPk(id, {
+        attributes: ["id", "name", "price", "photo"],
         include: [
           {
             model: Categories,
+            attributes: ["id", "name"],
             required: true,
           },
         ],
@@ -89,7 +93,7 @@ module.exports = {
       });
 
     try {
-      const product = await Products.update(
+      await Products.update(
         {
           name: name,
           price: price,
@@ -102,7 +106,6 @@ module.exports = {
         status: "success",
         data: {
           message: "You have successfully updated a product.",
-          product: product,
         },
       });
     } catch (e) {
@@ -110,7 +113,6 @@ module.exports = {
         status: "success",
         data: {
           message: "You have unsuccessfully updated a product.",
-          product: req.body,
         },
       });
     }
@@ -125,14 +127,14 @@ module.exports = {
       res.status(200).json({
         status: "success",
         data: {
-          message: "You have successfully updated a product.",
+          message: "You have successfully deleted a product.",
         },
       });
     } catch (e) {
       res.status(400).json({
         status: "error",
         data: {
-          message: "You have unsuccessfully updated a product.",
+          message: "You have unsuccessfully deleted a product.",
         },
       });
     }

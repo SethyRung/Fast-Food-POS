@@ -26,6 +26,7 @@ app.use(cookieParser());
 
 app.use("/auth", require("./routers/auth"));
 app.use("/refresh", require("./routers/refresh"));
+app.use("/category", require("./routers/category"));
 app.use("/product", require("./routers/product"));
 
 sequelize
