@@ -16,6 +16,10 @@ module.exports = (sequelize, DataTypes) =>
         type: DataTypes.DECIMAL(10, 2),
         allowNull: false,
       },
+      photo: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
     },
     {
       freezeTableName: true,

@@ -4,7 +4,7 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
 
-const { sequelize, Employees } = require("./models");
+const { sequelize } = require("./models");
 const verifyJWT = require("./middleware/verifyJWT");
 
 const allowedOrigins = [
@@ -26,6 +26,7 @@ app.use(cookieParser());
 
 app.use("/auth", require("./routers/auth"));
 app.use("/refresh", require("./routers/refresh"));
+app.use("/product", require("./routers/product"));
 
 sequelize
   // .sync({ force: true })
