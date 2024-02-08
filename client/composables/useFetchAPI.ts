@@ -1,12 +1,12 @@
 import { useFetch } from "nuxt/app";
 
-export async function useFetchAPI(url: string, options: any = {}) {
+export async function useFetchAPI<T>(url: string, options: any = {}) {
   options.baseURL = useRuntimeConfig().public.apiURL;
   options.headers = {
     Authorization: "Bearer " + localStorage.getItem("token"),
   };
   options.credentials = "include";
-  let result = await useFetch(url, options);
+  let result = await useFetch<T>(url, options);
   if (result.error.value) {
     const status = result.error.value.statusCode;
     const message = result.error.value.data.message;
@@ -29,7 +29,7 @@ export async function useFetchAPI(url: string, options: any = {}) {
         options.headers = {
           Authorization: "Bearer " + accessToken,
         };
-        result = await useFetch(url, options);
+        result = await useFetch<T>(url, options);
       }
     }
   }

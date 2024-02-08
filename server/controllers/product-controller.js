@@ -1,4 +1,23 @@
 const { Products, Categories } = require("../models");
+const path = require("path");
+const fs = require("fs");
+
+async function deleteOldProductPhoto(id) {
+  try {
+    const product = await Products.findByPk(id, {
+      attributes: ["photo"],
+    });
+    const filePath = path.join(
+      __dirname,
+      "..",
+      "public",
+      "images",
+      product.photo
+    );
+    fs.unlink(filePath, () => {});
+    console.log(filePath);
+  } catch (e) {}
+}
 
 module.exports = {
   async createProduct(req, res) {
@@ -26,8 +45,10 @@ module.exports = {
       console.log(e);
       res.status(400).json({
         status: "error",
-        message: "You have unsuccessfully added a product.",
-        product: req.body,
+        data: {
+          message: "You have unsuccessfully added a product.",
+          product: req.body,
+        },
       });
     }
   },
@@ -42,6 +63,7 @@ module.exports = {
             required: true,
           },
         ],
+        order: [["id", "ASC"]],
       });
 
       res.status(200).json({
@@ -64,7 +86,6 @@ module.exports = {
       const id = parseInt(req.params.id);
       if (isNaN(id)) throw new Error();
       const product = await Products.findByPk(id, {
-        attributes: ["id", "name", "price", "photo"],
         include: [
           {
             model: Categories,
@@ -93,6 +114,8 @@ module.exports = {
       });
 
     try {
+      deleteOldProductPhoto(id);
+
       await Products.update(
         {
           name: name,
@@ -123,6 +146,7 @@ module.exports = {
       return res.status(400).json({ message: "Insufficient data" });
 
     try {
+      deleteOldProductPhoto(id);
       await Products.destroy({ where: { id: id } });
       res.status(200).json({
         status: "success",

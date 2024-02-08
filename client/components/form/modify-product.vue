@@ -1,9 +1,12 @@
 <script lang="ts" setup>
 import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
+import type { CategoryType, ProductType } from "~/lib/types";
 
 const schema = z.object({
-  name: z.string(),
+  name: z
+    .string()
+    .refine((val) => val.trim().length > 0, { message: "Required" }),
   price: z
     .number({ invalid_type_error: "Price must be a valid number" })
     .positive({ message: "Price must be greater than 0" }),
@@ -24,59 +27,34 @@ const schema = z.object({
     ),
 });
 
-type CategoryType = {
-  id: number;
-  name: string;
-};
-
-type ProductType = {
+const state = reactive<{
+  id: number | undefined;
   name: string | undefined;
   price: number | undefined;
   category: CategoryType | undefined;
   photo: File | undefined;
-};
-
-const state = reactive<ProductType>({
+}>({
+  id: undefined,
   name: undefined,
   price: undefined,
   category: undefined,
   photo: undefined,
 });
 
-const categories = [
-  {
-    id: 1,
-    name: "Burgers",
-  },
-  {
-    id: 2,
-    name: "Pizza",
-  },
-  {
-    id: 3,
-    name: "Fried Chicken",
-  },
-  {
-    id: 4,
-    name: "Sandwiches",
-  },
-  {
-    id: 5,
-    name: "Hot Dogs",
-  },
-  {
-    id: 6,
-    name: "Tacos",
-  },
-  {
-    id: 7,
-    name: "Burritos",
-  },
-  {
-    id: 8,
-    name: "French Fries",
-  },
-];
+const { data, error } = await useFetchAPI<{
+  status: string;
+  data: {
+    categories: [
+      {
+        id: number;
+        name: string;
+      }
+    ];
+  };
+}>("category");
+
+const categories = ref<CategoryType[]>([]);
+if (!error.value) categories.value = data.value?.data.categories!;
 
 const imageUrl = ref<string | null>(null);
 
@@ -100,46 +78,130 @@ const handleFileChange = (event: Event) => {
   }
 };
 
-async function handleLogin(event: FormSubmitEvent<z.output<typeof schema>>) {
-  // const { data, error } = await useFetch(config.public.apiURL + "auth/login", {
-  //   method: "post",
-  //   body: {
-  //     email: event.data.email,
-  //     password: event.data.password,
-  //   },
-  //   headers: useRequestHeaders(["cookie"]),
-  //   credentials: "include",
-  // });
+const emit = defineEmits(["modified", "close"]);
 
-  // if (error.value) {
-  //   const toast = useToast();
-  //   toast.add({
-  //     title: error.value?.data.message,
-  //     icon: "i-heroicons-x-circle-solid",
-  //     color: "red",
-  //     timeout: 5000,
-  //   });
-  // } else {
-  //   const userStore = useUserStore();
-  //   userStore.isAuthenticated = true;
-  //   userStore.uid = (data as any).value.uid;
-  //   userStore.roles = (data as any).value.roles;
+const props = defineProps<{
+  action: string;
+  id: number;
+}>();
 
-  //   localStorage.setItem("token", (data as any).value.accessToken);
-  //   navigateTo("/", {
-  //     replace: true,
-  //   });
-  // }
-  console.log(event.data);
+let photo: string;
+if (props.action === "Edit") {
+  const { data, error } = await useFetchAPI<{
+    status: string;
+    data: {
+      product: {
+        id: number;
+        name: string;
+        price: number;
+        photo: string;
+        Category: {
+          id: number;
+          name: string;
+        };
+      };
+    };
+  }>(`product/${props.id}`);
+
+  if (!error.value) {
+    state.id = data.value!.data.product.id;
+    state.name = data.value!.data.product.name;
+    state.price = parseFloat(data.value!.data.product.price.toString());
+    state.category = {
+      id: data.value!.data.product.Category.id,
+      name: data.value!.data.product.Category.name,
+    };
+
+    //load image
+    const url = `${useRuntimeConfig().public.apiURL}public/images/${
+      data.value!.data.product.photo
+    }`;
+    photo = data.value!.data.product.photo;
+    imageUrl.value = url;
+    const { data: res } = await useFetch(url);
+    state.photo = res.value as File;
+  }
+}
+
+async function handleSubmit(event: FormSubmitEvent<ProductType>) {
+  const formData = new FormData();
+  const toast = useToast();
+  try {
+    if (
+      props.action === "Add" ||
+      (props.action === "Edit" && !!state.photo?.name)
+    ) {
+      formData.append(state.photo!.name, state.photo!);
+      const { data: resUpload, error } = await useFetchAPI("upload", {
+        method: "post",
+        body: formData,
+      });
+      if (error.value) throw error.value?.data.data.message;
+      photo = (resUpload.value as any).data.files[0];
+    }
+    const { data, error } =
+      props.action === "Add"
+        ? await useFetchAPI("product", {
+            method: "post",
+            body: {
+              name: event.data.name!.trim(),
+              price: event.data.price,
+              photo: photo,
+              categoryId: event.data.category?.id,
+            },
+          })
+        : await useFetchAPI(`product/${event.data.id}`, {
+            method: "put",
+            body: {
+              name: event.data.name!.trim(),
+              price: event.data.price,
+              photo: photo,
+              categoryId: event.data.category?.id,
+            },
+          });
+
+    if (error.value) throw error.value?.data.data.message;
+    else {
+      toast.add({
+        title: (data.value as any).data.message,
+        icon: "i-heroicons-check-circle-solid",
+        color: "primary",
+        timeout: 5000,
+        callback: () => {
+          emit("close");
+        },
+      });
+
+      emit("modified", {
+        id:
+          props.action === "Add"
+            ? (data.value as any).data.product.id
+            : state.id,
+        name: state.name,
+        price: state.price,
+        photo: photo,
+        categoryId: state.category!.id,
+        categoryName: state.category!.name,
+      });
+    }
+  } catch (e: any) {
+    toast.add({
+      title: e,
+      icon: "i-heroicons-x-circle-solid",
+      color: "red",
+      timeout: 5000,
+    });
+  }
 }
 </script>
 
 <template>
+  <UNotifications :ui="{ position: 'top-0 bottom-auto' }" />
   <UForm
     :schema="schema"
     :state="state"
     class="font-rubik"
-    @submit="handleLogin"
+    @submit="handleSubmit"
   >
     <UFormGroup
       label="Product Name"
@@ -176,6 +238,7 @@ async function handleLogin(event: FormSubmitEvent<z.output<typeof schema>>) {
     >
       <UInput
         type="number"
+        step="any"
         v-model="state.price"
         :ui="{
           size: {

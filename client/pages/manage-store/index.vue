@@ -1,8 +1,8 @@
 <script setup lang="ts">
 definePageMeta({
   title: "Manage Store",
-  // requiresAuth: true,
-  // roles: [2001],
+  requiresAuth: true,
+  roles: [5150],
 });
 </script>
 

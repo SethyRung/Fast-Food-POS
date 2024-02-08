@@ -6,6 +6,7 @@ const height = ref(window.innerHeight + "px");
 window.addEventListener("resize", (e) => {
   height.value = window.innerHeight + "px";
 });
+navigateTo("/auth/login");
 </script>
 
 <template>
@@ -27,7 +28,7 @@ window.addEventListener("resize", (e) => {
     <div class="px-6 w-full absolute bottom-14">
       <NuxtLink
         to="/auth/login"
-        class="grid place-items-center w-full h-14 bg-skylineBlue-500 text-base text-white rounded-2xl"
+        class="mobileLandscape:max-w-[324px] mobileLandscape:mx-auto grid place-items-center w-full h-14 bg-skylineBlue-500 text-base text-white rounded-2xl"
       >
         Log in
       </NuxtLink>

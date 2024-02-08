@@ -23,14 +23,18 @@ module.exports = {
       console.log(e);
       res.status(400).json({
         status: "error",
-        message: "You have unsuccessfully added a category.",
-        category: req.body,
+        data: {
+          message: "You have unsuccessfully added a category.",
+          category: req.body,
+        },
       });
     }
   },
   async readCategory(req, res) {
     try {
-      const categories = await Categories.findAll();
+      const categories = await Categories.findAll({
+        attributes: ["id", "name"],
+      });
 
       res.status(200).json({
         status: "success",

@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import type { CategoryType } from "~/lib/types";
+
 definePageMeta({
   title: "Category",
+  requiresAuth: true,
+  roles: [5150],
 });
 // Columns
 const columns = [
@@ -11,11 +15,11 @@ const columns = [
   },
   {
     key: "name",
-    label: "Category Name",
+    label: "CategoryType Name",
     sortable: true,
   },
   {
-    key: "action",
+    key: "actions",
     label: "Actions",
   },
 ];
@@ -26,18 +30,7 @@ const columnsTable = computed(() =>
 );
 
 // Selected Rows
-const selectedRows = ref([]);
-
-function select(row: any) {
-  const index = selectedRows.value.findIndex(
-    (item) => (item as any).id === row.id
-  );
-  if (index === -1) {
-    selectedRows.value.push(row as never);
-  } else {
-    selectedRows.value.splice(index, 1);
-  }
-}
+const category = ref<CategoryType | undefined>(undefined);
 
 const search = ref("");
 const selectedStatus = ref<any>([]);
@@ -62,40 +55,86 @@ const resetFilters = () => {
 const sort = ref({ column: "id", direction: "asc" as const });
 const page = ref(1);
 const pageCount = ref(10);
-const pageTotal = ref(200); // This value should be dynamic coming from the API
+const pageTotal = ref(0);
 const pageFrom = computed(() => (page.value - 1) * pageCount.value + 1);
 const pageTo = computed(() =>
   Math.min(page.value * pageCount.value, pageTotal.value)
 );
 
 // Data
-const { data: todos, pending } = await useLazyAsyncData<
-  {
-    id: number;
-    title: string;
-    completed: string;
-  }[]
->(
-  "todos",
-  () =>
-    ($fetch as any)(
-      `https://jsonplaceholder.typicode.com/todos${searchStatus.value}`,
+const { data, pending } = await useFetchAPI<{
+  status: string;
+  data: {
+    categories: [
       {
-        query: {
-          q: search.value,
-          _page: page.value,
-          _limit: pageCount.value,
-          _sort: sort.value.column,
-          _order: sort.value.direction,
-        },
+        id: number;
+        name: string;
       }
-    ),
-  {
-    default: () => [],
-    watch: [page, search, searchStatus, pageCount, sort],
+    ];
+  };
+}>("category", {
+  watch: [page, search, searchStatus, pageCount, sort],
+});
+
+const categories = ref<CategoryType[]>([]);
+if (data.value !== null) {
+  categories.value = data.value.data.categories;
+  pageTotal.value = categories.value.length;
+}
+
+const isModify = ref(false);
+const actionType = ref<string>();
+
+const items = (row: CategoryType) => [
+  [
+    {
+      label: "Edit",
+      icon: "i-heroicons-pencil-square-20-solid",
+      click: () => {
+        isModify.value = true;
+        actionType.value = "Edit";
+        category.value = row;
+      },
+    },
+    {
+      label: "Delete",
+      icon: "i-heroicons-trash-20-solid",
+      click: () => {
+        isModify.value = true;
+        actionType.value = "Delete";
+        category.value = row;
+      },
+    },
+  ],
+];
+
+const toast = useToast();
+const handleDelete = async () => {
+  const { data, error } = await useFetchAPI(`category/${category.value!.id}`, {
+    method: "delete",
+  });
+  if (error.value) {
+    toast.add({
+      title: error.value?.data.data.message,
+      icon: "i-heroicons-x-circle-solid",
+      color: "red",
+      timeout: 5000,
+    });
+  } else {
+    toast.add({
+      title: (data.value as any).data.message,
+      icon: "i-heroicons-check-circle-solid",
+      color: "primary",
+      timeout: 5000,
+    });
+    categories.value = categories.value!.filter(
+      (e) => e.id !== category.value?.id
+    );
+
+    isModify.value = false;
+    // selectedRows.value.pop();
   }
-);
-const isModalOpen = ref(false);
+};
 </script>
 
 <template>
@@ -129,9 +168,14 @@ const isModalOpen = ref(false);
         <UButton
           icon="i-heroicons-plus-circle"
           color="gray"
-          @click="isModalOpen = true"
+          @click="
+            () => {
+              isModify = true;
+              actionType = 'Add';
+            }
+          "
         >
-          Add Category
+          Add CategoryType
         </UButton>
       </div>
 
@@ -160,7 +204,7 @@ const isModalOpen = ref(false);
     <!-- Table -->
     <UTable
       v-model:sort="sort"
-      :rows="todos"
+      :rows="categories"
       :columns="columnsTable"
       :loading="pending"
       sort-asc-icon="i-heroicons-arrow-up"
@@ -168,37 +212,15 @@ const isModalOpen = ref(false);
       sort-mode="manual"
       class="w-full"
       :ui="{ td: { base: 'max-w-[0] truncate' } }"
-      @select="select"
     >
-      <template #completed-data="{ row }">
-        <UBadge
-          size="xs"
-          :label="row.completed ? 'Completed' : 'In Progress'"
-          :color="row.completed ? 'emerald' : 'orange'"
-          variant="subtle"
-        />
-      </template>
-
       <template #actions-data="{ row }">
-        <UButton
-          v-if="!row.completed"
-          icon="i-heroicons-check"
-          size="2xs"
-          color="emerald"
-          variant="outline"
-          :ui="{ rounded: 'rounded-full' }"
-          square
-        />
-
-        <UButton
-          v-else
-          icon="i-heroicons-arrow-path"
-          size="2xs"
-          color="orange"
-          variant="outline"
-          :ui="{ rounded: 'rounded-full' }"
-          square
-        />
+        <UDropdown :items="items(row)">
+          <UButton
+            color="gray"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-horizontal-20-solid"
+          />
+        </UDropdown>
       </template>
     </UTable>
 
@@ -225,20 +247,20 @@ const isModalOpen = ref(false);
   </UCard>
 
   <UModal
-    v-model="isModalOpen"
+    v-model="isModify"
     prevent-close
     :ui="{
       container: 'items-center max-w-[548px] mx-auto',
     }"
   >
     <UCard
+      v-if="actionType !== 'Delete'"
       :ui="{
         ring: '',
         divide: 'divide-y divide-gray-100 dark:divide-gray-800',
         body: {
           base: 'max-h-[80vh] ',
         },
-        base: 'max-w-[548px]',
       }"
     >
       <template #header>
@@ -246,19 +268,49 @@ const isModalOpen = ref(false);
           <h3
             class="text-base font-semibold leading-6 text-gray-900 dark:text-white"
           >
-            Add Category
+            {{ actionType }} CategoryType
           </h3>
           <UButton
             color="gray"
             variant="ghost"
             icon="i-heroicons-x-mark-20-solid"
             class="-my-1"
-            @click="isModalOpen = false"
+            @click="isModify = false"
           />
         </div>
       </template>
 
-      <FormModify-Category></FormModify-Category>
+      <FormModify-Category
+        :action="(actionType as string)"
+        :category="(category as CategoryType)"
+        @modified="
+          (c: CategoryType) => {
+            actionType==='Add' ? categories.push(c): category!.name = c.name;
+          }
+        "
+        @close="isModify = false"
+      ></FormModify-Category>
     </UCard>
+    <UAlert
+      v-else
+      title="Are you sure you want to delete category?"
+      :actions="[
+        {
+          label: 'Yes, Delete',
+          variant: 'solid',
+          color: 'primary',
+          click: handleDelete,
+        },
+        {
+          label: 'Cancel',
+          variant: 'solid',
+          color: 'red',
+          click: () => {
+            isModify = false;
+          },
+        },
+      ]"
+    />
   </UModal>
+  <UNotifications :ui="{ position: 'top-0 bottom-auto' }" />
 </template>

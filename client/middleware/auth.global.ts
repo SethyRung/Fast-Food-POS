@@ -12,11 +12,10 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
       }
     } else {
       const { data, error } = await useFetchAPI("auth/currentUser");
-      userStore.isAuthenticated = true;
-      userStore.uid = (data.value as any).uid;
-      userStore.roles = (data.value as any).roles;
-
       if (!error.value) {
+        userStore.isAuthenticated = true;
+        userStore.uid = (data.value as any).uid;
+        userStore.roles = (data.value as any).roles;
         for (let i = 0; i < userStore.roles.length; i++) {
           if (
             !(to.meta.roles as any).includes(userStore.roles[i]) &&

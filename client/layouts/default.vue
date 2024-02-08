@@ -8,6 +8,23 @@ const router = useRouter();
 router.beforeEach(() => {
   isOpen.value = false;
 });
+
+async function handleLogout() {
+  const { data, error } = await useFetchAPI("auth/logout", {
+    method: "post",
+  });
+  if (!error.value) {
+    const userStore = useUserStore();
+    userStore.isAuthenticated = false;
+    userStore.uid = 0;
+    userStore.roles = [];
+
+    localStorage.clear();
+    navigateTo("/", {
+      replace: true,
+    });
+  }
+}
 </script>
 
 <template>
@@ -38,9 +55,9 @@ router.beforeEach(() => {
           <div class="flex items-center justify-between">
             <NuxtLink
               to="/"
-              class="text-base font-semibold leading-6 text-navy-500 dark:text-white"
+              class="text-base font-semibold leading-6 text-skylineBlue-500 dark:text-white"
             >
-              MyNameStore
+              Rumduol Store
             </NuxtLink>
             <UButton
               color="gray"
@@ -52,6 +69,13 @@ router.beforeEach(() => {
           </div>
         </template>
         <div class="h-full">
+          <NuxtLink
+            to="/"
+            class="h-14 flex items-center gap-5 text-navy-500 text-base font-rubik"
+          >
+            <Icon name="i-heroicons-home-solid" size="24" />
+            Home
+          </NuxtLink>
           <NuxtLink
             to="/cashier"
             class="h-14 flex items-center gap-5 text-navy-500 text-base font-rubik"
@@ -82,7 +106,13 @@ router.beforeEach(() => {
           </NuxtLink>
         </div>
         <template #footer>
-          <UButton label="Log out" color="white" block size="xl" />
+          <UButton
+            label="Log out"
+            color="white"
+            block
+            size="xl"
+            @click="handleLogout"
+          />
         </template>
       </UCard>
     </USlideover>

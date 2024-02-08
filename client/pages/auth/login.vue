@@ -63,7 +63,7 @@ window.addEventListener("resize", (e) => {
     :style="{ minHeight: height }"
   >
     <UCard
-      class="w-full h-fit sm:w-96 px-2"
+      class="max-w-96 w-full h-fit px-2"
       :ui="{ ring: 'ring-0', shadow: 'shadow-none', divide: 'divide-y-0' }"
     >
       <template #header>

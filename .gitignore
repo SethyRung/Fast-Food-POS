@@ -20,3 +20,6 @@ logs
 
 # Local env files
 .env
+
+#My File
+public

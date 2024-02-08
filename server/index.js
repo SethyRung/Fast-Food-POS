@@ -3,9 +3,14 @@ const app = express();
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 require("dotenv").config();
+const express_fileUpload = require("express-fileupload");
 
 const { sequelize } = require("./models");
+const validateFile = require("./middleware/validateFile");
+const uploadFile = require("./middleware/uploadFile");
 const verifyJWT = require("./middleware/verifyJWT");
+const verifyRoles = require("./middleware/verifyRoles");
+const ROLES_LIST = require("./configs/roles-list");
 
 const allowedOrigins = [
   `http://localhost:${process.env.CLIENT_PORT}`,
@@ -26,8 +31,26 @@ app.use(cookieParser());
 
 app.use("/auth", require("./routers/auth"));
 app.use("/refresh", require("./routers/refresh"));
-app.use("/category", require("./routers/category"));
-app.use("/product", require("./routers/product"));
+app.use(
+  "/category",
+  verifyJWT,
+  verifyRoles(ROLES_LIST.Admin),
+  require("./routers/category")
+);
+app.use(
+  "/product",
+  verifyJWT,
+  verifyRoles(ROLES_LIST.Admin),
+  require("./routers/product")
+);
+app.post(
+  "/upload",
+  express_fileUpload({ createParentPath: true }),
+  validateFile([".png", ".jpeg", ".jpg"], 5 * 1024 * 1024),
+  uploadFile("images")
+);
+
+app.use("/public", express.static("public"));
 
 sequelize
   // .sync({ force: true })

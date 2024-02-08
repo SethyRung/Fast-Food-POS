@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import type { ProductType } from "~/lib/types";
+
 definePageMeta({
   title: "Product",
+  requiresAuth: true,
+  roles: [5150],
 });
 // Columns
 const columns = [
@@ -24,12 +28,12 @@ const columns = [
     sortable: true,
   },
   {
-    key: "category",
+    key: "categoryName",
     label: "Category",
     sortable: true,
   },
   {
-    key: "action",
+    key: "actions",
     label: "Actions",
   },
 ];
@@ -39,51 +43,14 @@ const columnsTable = computed(() =>
   columns.filter((column) => selectedColumns.value.includes(column))
 );
 
-// Selected Rows
-const selectedRows = ref([]);
-
-function select(row: any) {
-  const index = selectedRows.value.findIndex(
-    (item) => (item as any).id === row.id
-  );
-  if (index === -1) {
-    selectedRows.value.push(row as never);
-  } else {
-    selectedRows.value.splice(index, 1);
-  }
-}
-
-// Actions
-const actions = [
-  [
-    {
-      key: "completed",
-      label: "Completed",
-      icon: "i-heroicons-check",
-    },
-  ],
-  [
-    {
-      key: "uncompleted",
-      label: "In Progress",
-      icon: "i-heroicons-arrow-path",
-    },
-  ],
-];
-
-// Filters
-const todoStatus = [
-  {
-    key: "uncompleted",
-    label: "In Progress",
-    value: false,
-  },
-  {
-    key: "completed",
-    label: "Completed",
-    value: true,
-  },
-];
+const product = ref<{
+  id: number | undefined;
+  name: string | undefined;
+  price: number | undefined;
+  categoryId: number | undefined;
+  categoryName: string | undefined;
+  photo: string | undefined;
+}>();
 
 const search = ref("");
 const selectedStatus = ref<any>([]);
@@ -108,40 +75,117 @@ const resetFilters = () => {
 const sort = ref({ column: "id", direction: "asc" as const });
 const page = ref(1);
 const pageCount = ref(10);
-const pageTotal = ref(200); // This value should be dynamic coming from the API
+const pageTotal = ref(0);
 const pageFrom = computed(() => (page.value - 1) * pageCount.value + 1);
 const pageTo = computed(() =>
   Math.min(page.value * pageCount.value, pageTotal.value)
 );
 
 // Data
-const { data: todos, pending } = await useLazyAsyncData<
-  {
-    id: number;
-    title: string;
-    completed: string;
-  }[]
->(
-  "todos",
-  () =>
-    ($fetch as any)(
-      `https://jsonplaceholder.typicode.com/todos${searchStatus.value}`,
+const { data, pending } = await useFetchAPI<{
+  status: string;
+  data: {
+    products: [
       {
-        query: {
-          q: search.value,
-          _page: page.value,
-          _limit: pageCount.value,
-          _sort: sort.value.column,
-          _order: sort.value.direction,
-        },
+        id: number;
+        name: string;
+        price: number;
+        photo: string;
+        Category: {
+          id: number;
+          name: string;
+        };
       }
-    ),
+    ];
+  };
+}>("product", {
+  watch: [page, search, searchStatus, pageCount, sort],
+});
+
+const products = ref<
   {
-    default: () => [],
-    watch: [page, search, searchStatus, pageCount, sort],
+    id: number | undefined;
+    name: string | undefined;
+    price: number | undefined;
+    categoryId: number | undefined;
+    categoryName: string | undefined;
+    photo: string | undefined;
+  }[]
+>([]);
+
+if (data.value !== null) {
+  products.value = data.value.data.products.map((p) => {
+    return {
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      categoryId: p.Category.id,
+      categoryName: p.Category.name,
+      photo: p.photo,
+    };
+  });
+  pageTotal.value = products.value.length;
+}
+
+const items = (
+  row:
+    | {
+        id: number | undefined;
+        name: string | undefined;
+        price: number | undefined;
+        categoryId: number | undefined;
+        categoryName: string | undefined;
+        photo: string | undefined;
+      }
+    | undefined
+) => [
+  [
+    {
+      label: "Edit",
+      icon: "i-heroicons-pencil-square-20-solid",
+      click: () => {
+        isModify.value = true;
+        actionType.value = "Edit";
+        product.value = row;
+      },
+    },
+    {
+      label: "Delete",
+      icon: "i-heroicons-trash-20-solid",
+      click: () => {
+        isModify.value = true;
+        actionType.value = "Delete";
+        product.value = row;
+      },
+    },
+  ],
+];
+
+const isModify = ref(false);
+const actionType = ref<string>();
+const toast = useToast();
+const handleDelete = async () => {
+  const { data, error } = await useFetchAPI(`product/${product.value!.id}`, {
+    method: "delete",
+  });
+  if (error.value) {
+    toast.add({
+      title: error.value?.data.data.message,
+      icon: "i-heroicons-x-circle-solid",
+      color: "red",
+      timeout: 5000,
+    });
+  } else {
+    toast.add({
+      title: (data.value as any).data.message,
+      icon: "i-heroicons-check-circle-solid",
+      color: "primary",
+      timeout: 5000,
+    });
+    products.value = products.value!.filter((e) => e.id !== product.value?.id);
+    isModify.value = false;
   }
-);
-const isModalOpen = ref(false);
+};
 </script>
 
 <template>
@@ -160,20 +204,12 @@ const isModalOpen = ref(false);
     }"
   >
     <!-- Filters -->
-    <div class="flex items-center justify-between gap-3 py-3">
+    <div class="flex items-center justify-start tablet:justify-end gap-3 py-3">
       <UInput
         v-model="search"
         icon="i-heroicons-magnifying-glass-20-solid"
         placeholder="Search..."
         :ui="{ base: 'tablet:w-[276px]' }"
-      />
-
-      <USelectMenu
-        v-model="selectedStatus"
-        :options="todoStatus"
-        multiple
-        placeholder="Category"
-        class="w-40"
       />
     </div>
 
@@ -183,7 +219,12 @@ const isModalOpen = ref(false);
         <UButton
           icon="i-heroicons-plus-circle"
           color="gray"
-          @click="isModalOpen = true"
+          @click="
+            () => {
+              isModify = true;
+              actionType = 'Add';
+            }
+          "
         >
           Add Product
         </UButton>
@@ -220,7 +261,7 @@ const isModalOpen = ref(false);
     <!-- Table -->
     <UTable
       v-model:sort="sort"
-      :rows="todos"
+      :rows="products"
       :columns="columnsTable"
       :loading="pending"
       sort-asc-icon="i-heroicons-arrow-up"
@@ -228,37 +269,21 @@ const isModalOpen = ref(false);
       sort-mode="manual"
       class="w-full"
       :ui="{ td: { base: 'max-w-[0] truncate' } }"
-      @select="select"
     >
-      <template #completed-data="{ row }">
-        <UBadge
-          size="xs"
-          :label="row.completed ? 'Completed' : 'In Progress'"
-          :color="row.completed ? 'emerald' : 'orange'"
-          variant="subtle"
+      <template #photo-data="{ row }">
+        <img
+          :src="`${useRuntimeConfig().public.apiURL}public/images/${row.photo}`"
+          class="w-12 h-12"
         />
       </template>
-
-      <template #actions-data="{ row }">
-        <UButton
-          v-if="!row.completed"
-          icon="i-heroicons-check"
-          size="2xs"
-          color="emerald"
-          variant="outline"
-          :ui="{ rounded: 'rounded-full' }"
-          square
-        />
-
-        <UButton
-          v-else
-          icon="i-heroicons-arrow-path"
-          size="2xs"
-          color="orange"
-          variant="outline"
-          :ui="{ rounded: 'rounded-full' }"
-          square
-        />
+      <template #actions-data="{ row }" class="w-[100px]">
+        <UDropdown :items="items(row)">
+          <UButton
+            color="gray"
+            variant="ghost"
+            icon="i-heroicons-ellipsis-horizontal-20-solid"
+          />
+        </UDropdown>
       </template>
     </UTable>
 
@@ -285,13 +310,14 @@ const isModalOpen = ref(false);
   </UCard>
 
   <UModal
-    v-model="isModalOpen"
+    v-model="isModify"
     prevent-close
     :ui="{
       container: 'items-center max-w-[548px] mx-auto',
     }"
   >
     <UCard
+      v-if="actionType !== 'Delete'"
       :ui="{
         ring: '',
         divide: 'divide-y divide-gray-100 dark:divide-gray-800',
@@ -306,19 +332,56 @@ const isModalOpen = ref(false);
           <h3
             class="text-base font-semibold leading-6 text-gray-900 dark:text-white"
           >
-            Add Product
+            {{ actionType }} Product
           </h3>
           <UButton
             color="gray"
             variant="ghost"
             icon="i-heroicons-x-mark-20-solid"
             class="-my-1"
-            @click="isModalOpen = false"
+            @click="isModify = false"
           />
         </div>
       </template>
 
-      <FormModify-Product></FormModify-Product>
+      <FormModify-Product
+        :action="(actionType as string)"
+        :id="!product? 0 : product!.id!"
+        @modified="
+          (p ) => {
+            if (actionType === 'Add') products.push(p); 
+            else{
+              product!.name = p.name;
+              product!.price = p.price;
+              product!.categoryId = p.categoryId;
+              product!.categoryName = p.categoryName;
+              product!.photo = p.photo;
+            } 
+          }
+        "
+        @close="isModify = false"
+      ></FormModify-Product>
     </UCard>
+    <UAlert
+      v-else
+      title="Are you sure you want to delete category?"
+      :actions="[
+        {
+          label: 'Yes, Delete',
+          variant: 'solid',
+          color: 'primary',
+          click: handleDelete,
+        },
+        {
+          label: 'Cancel',
+          variant: 'solid',
+          color: 'red',
+          click: () => {
+            isModify = false;
+          },
+        },
+      ]"
+    />
   </UModal>
+  <UNotifications :ui="{ position: 'top-0 bottom-auto' }" />
 </template>

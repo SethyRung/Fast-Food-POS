@@ -1,116 +1,74 @@
 <script lang="ts" setup>
 import { z } from "zod";
 import type { FormSubmitEvent } from "@nuxt/ui/dist/runtime/types";
+import type { CategoryType, ProductType } from "~/lib/types";
 
 const schema = z.object({
   name: z.string(),
-  price: z
-    .number({ invalid_type_error: "Price must be a valid number" })
-    .positive({ message: "Price must be greater than 0" }),
-  category: z
-    .custom<CategoryType>()
-    .refine((category) => !!category, { message: "Required" }),
-  photo: z
-    .custom<File>()
-    .refine((file) => !!file, { message: "Required" })
-    .refine(
-      (file) => !!file && file.size <= 5 * 1024 * 1024, // Max 5MB
-      { message: "File size must be less than 5MB" }
-    )
-    .refine(
-      (file) =>
-        !!file && ["image/png", "image/jpeg", "image/jpg"].includes(file.type), // Allow only images
-      { message: "Only png, jpg and jpeg are allowed" }
-    ),
 });
 
-type CategoryType = {
-  id: number;
-  name: string;
-};
-
-type ProductType = {
-  name: string | undefined;
-  price: number | undefined;
-  category: CategoryType | undefined;
-  photo: File | undefined;
-};
-
-const state = reactive<ProductType>({
+const state = reactive<CategoryType>({
   name: undefined,
-  price: undefined,
-  category: undefined,
-  photo: undefined,
 });
 
-const categories = [
-  {
-    id: 1,
-    name: "Burgers",
-  },
-  {
-    id: 2,
-    name: "Pizza",
-  },
-  {
-    id: 3,
-    name: "Fried Chicken",
-  },
-  {
-    id: 4,
-    name: "Sandwiches",
-  },
-  {
-    id: 5,
-    name: "Hot Dogs",
-  },
-  {
-    id: 6,
-    name: "Tacos",
-  },
-  {
-    id: 7,
-    name: "Burritos",
-  },
-  {
-    id: 8,
-    name: "French Fries",
-  },
-];
+const emit = defineEmits(["modified", "close"]);
 
-const imageUrl = ref<string | null>(null);
+const props = defineProps<{
+  action: string;
+  category: CategoryType;
+}>();
 
-const handleFileChange = (event: Event) => {
-  imageUrl.value = null;
-  const input = event.target as HTMLInputElement;
-  const file = input.files?.[0];
+if (props.action === "Add") {
+  state.id = undefined;
+  state.name = undefined;
+} else {
+  state.id = props.category.id;
+  state.name = props.category.name;
+}
+async function handleSubmit(event: FormSubmitEvent<CategoryType>) {
+  const { data, error } =
+    props.action === "Add"
+      ? await useFetchAPI("category", {
+          method: "post",
+          body: { name: event.data.name!.trim() },
+        })
+      : await useFetchAPI(`category/${event.data.id}`, {
+          method: "put",
+          body: { name: event.data.name!.trim() },
+        });
+  const toast = useToast();
 
-  if (!file) return;
-
-  state.photo = file;
-
-  if (["image/png", "image/jpeg", "image/jpg"].includes(file.type)) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        imageUrl.value = reader.result;
-      }
-    };
-    reader.readAsDataURL(file);
+  if (error.value) {
+    toast.add({
+      title: error.value?.data.data.message,
+      icon: "i-heroicons-x-circle-solid",
+      color: "red",
+      timeout: 5000,
+    });
+  } else {
+    toast.add({
+      title: (data.value as any).data.message,
+      icon: "i-heroicons-check-circle-solid",
+      color: "primary",
+      timeout: 5000,
+      callback: () => {
+        emit("close");
+      },
+    });
+    props.action === "Add"
+      ? emit("modified", (data.value as any).data.category)
+      : emit("modified", state);
   }
-};
-
-async function handleLogin(event: FormSubmitEvent<z.output<typeof schema>>) {
-  console.log(event.data);
 }
 </script>
 
 <template>
+  <UNotifications :ui="{ position: 'top-0 bottom-auto' }" />
   <UForm
     :schema="schema"
     :state="state"
     class="font-rubik"
-    @submit="handleLogin"
+    @submit="handleSubmit"
   >
     <UFormGroup
       label="Category Name"

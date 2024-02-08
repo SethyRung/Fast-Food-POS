@@ -1,7 +1,12 @@
 <script lang="ts" setup>
 definePageMeta({
   title: "Home",
+  requiresAuth: true,
+  roles: [2001],
 });
+
+if (useUserStore().isAuthenticated == false)
+  navigateTo("/auth/login", { replace: true });
 </script>
 
 <template>
@@ -15,14 +20,14 @@ definePageMeta({
         The quickest way to buy & receive
       </h2>
     </div>
-    <div class="px-6 w-full">
+    <!-- <div class="px-6 w-full">
       <NuxtLink
-        to="/auth"
-        class="flex items-center justify-center gap-10 w-full h-14 bg-skylineBlue-500 text-base text-white rounded-2xl"
+        to="/auth/login"
+        class="mobileLandscape:max-w-[324px] mobileLandscape:mx-auto flex items-center justify-center gap-10 w-full h-14 bg-skylineBlue-500 text-base text-white rounded-2xl"
       >
         Let’s get started
         <Icon name="heroicons:arrow-right-16-solid" class="white" />
       </NuxtLink>
-    </div>
+    </div> -->
   </div>
 </template>
